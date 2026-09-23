@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="724" height="245" viewBox="0 0 724 245" font-family="SFMono-Regular,Consolas,Menlo,monospace" font-size="13">
+<rect width="724" height="245" rx="8" fill="#0d1117"/>
+<rect width="724" height="34" rx="8" fill="#161b22"/><rect y="26" width="724" height="8" fill="#161b22"/>
+<circle cx="20" cy="17" r="6" fill="#ff5f56"/>
+<circle cx="40" cy="17" r="6" fill="#ffbd2e"/>
+<circle cx="60" cy="17" r="6" fill="#27c93f"/>
+<text x="282" y="21" fill="#8b949e" font-size="12">python3 -m corral demo</text>
+<text x="22" y="52" fill="#3fb950" xml:space="preserve">corral demo -- 12 checks fanned out across 4 isolated agents</text>
+<text x="22" y="71" fill="#d29922" xml:space="preserve">================================================================</text>
+<text x="22" y="90" fill="#3fb950" xml:space="preserve">  agents: 4   merged: 12   successes: 9   failures: 3</text>
+<text x="22" y="109" fill="#c9d1d9" xml:space="preserve">  each agent wrote its OWN log in corral_demo_q795yw2u/logs/agent-*.jsonl</text>
+<text x="22" y="128" fill="#c9d1d9" xml:space="preserve">  ONE merge folded them into successes.jsonl + failures.jsonl -- no shared-folder</text>
+<text x="22" y="147" fill="#c9d1d9" xml:space="preserve">  contention, every result present exactly once.</text>
+<text x="22" y="166" fill="#c9d1d9" xml:space="preserve"></text>
+<text x="22" y="185" fill="#c9d1d9" xml:space="preserve">For a real subagent fan-out: corral.plan_prompts() gives each agent the parts to</text>
+<text x="22" y="204" fill="#c9d1d9" xml:space="preserve">clone, what to test, and a unique log path; spawn the agents, then call merge() once.</text>
+</svg>
