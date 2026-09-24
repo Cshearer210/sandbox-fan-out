@@ -2,7 +2,7 @@
 import os, sys, tempfile, shutil, unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from corral.core import fanout          # noqa: E402
-from corral.scoreboard import summarize  # noqa: E402
+from corral.scoreboard import summarize, _verdict, main  # noqa: E402
 
 
 class ScoreboardTest(unittest.TestCase):
@@ -19,6 +19,18 @@ class ScoreboardTest(unittest.TestCase):
             self.assertEqual(t["by_verdict"].get("GAP"), 5)
         finally:
             shutil.rmtree(d, ignore_errors=True)
+
+
+    def test_verdict_classifier_boundaries(self):     # kills L22 (head AND len<=24 AND no-space)
+        self.assertEqual(_verdict("CAUGHT: something"), "CAUGHT")   # valid verdict
+        self.assertEqual(_verdict(": no head"), "")                 # empty head -> not a verdict
+        self.assertEqual(_verdict("two words: x"), "")              # head has a space -> not a verdict
+        self.assertEqual(_verdict("x" * 25 + ": y"), "")            # head >24 chars -> not a verdict
+        self.assertEqual(_verdict("plain note no colon"), "")       # no colon at all
+
+    def test_main_argv_guard(self):                   # kills L62 (argv or [])
+        self.assertEqual(main(None), 2)               # None -> [] -> usage; the `and` mutant crashes
+        self.assertEqual(main([]), 2)                 # empty -> usage
 
 
 if __name__ == "__main__":

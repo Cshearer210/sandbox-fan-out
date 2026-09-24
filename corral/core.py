@@ -138,7 +138,7 @@ def fanout(population, work_fn, n_agents, out_dir, prepare=None, teardown=None, 
     log_dir = os.path.join(out_dir, "logs")
     if os.path.exists(log_dir):
         shutil.rmtree(log_dir)
-    os.makedirs(log_dir, exist_ok=True)
+    os.makedirs(log_dir)          # log_dir was just removed above, so it cannot exist here
     workers = max_workers or len(slices) or 1
     with ThreadPoolExecutor(max_workers=workers) as ex:
         futs = [ex.submit(run_slice, str(i), s, work_fn, log_dir, prepare, teardown)

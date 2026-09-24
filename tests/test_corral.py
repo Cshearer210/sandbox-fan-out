@@ -109,5 +109,61 @@ class PlanPromptsTest(unittest.TestCase):
         self.assertEqual(sorted(allunits), list(range(10)))  # disjoint + complete
 
 
+class MutationGuardTest(unittest.TestCase):
+    """Targeted cases that kill mutation survivors in core.py -- each pins one branch's behaviour.
+    Added 2026-09-23 after mutation testing showed core.py at 50% (the 8 tests passed but did not
+    catch bugs in 7 branches)."""
+    def setUp(self):
+        self.src = tempfile.mkdtemp()
+        for rel in ("pkg/a.txt", "pkg/sub/b.txt"):
+            p = os.path.join(self.src, rel)
+            os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "w").write(rel)
+        self.tmp = tempfile.mkdtemp()
+
+    def tearDown(self):
+        for d in (self.src, self.tmp):
+            shutil.rmtree(d, ignore_errors=True)
+
+    def test_checkout_file_then_its_parent_dir(self):              # kills L66 dirs_exist_ok=True
+        dest = os.path.join(self.tmp, "dest")
+        # a FILE under pkg is checked out first (creating dest/pkg), THEN the dir pkg itself --
+        # so copytree must merge into the now-existing dest/pkg (dirs_exist_ok=False would raise).
+        checkout(self.src, ["pkg/a.txt", "pkg"], dest)
+        self.assertTrue(os.path.exists(os.path.join(dest, "pkg", "a.txt")))
+        self.assertTrue(os.path.exists(os.path.join(dest, "pkg", "sub", "b.txt")))
+
+    def test_cleanup_on_missing_path_does_not_raise(self):         # kills L73 ignore_errors=True
+        cleanup(os.path.join(self.tmp, "nope"))                    # ignore_errors=False would raise
+
+    def test_teardown_not_called_without_workdir(self):            # kills L93 (teardown AND workdir)
+        calls = []
+        run_slice("0", [1, 2], lambda u, w: (True, "ok"), self.tmp,
+                  prepare=None, teardown=lambda wd: calls.append(wd))
+        self.assertEqual(calls, [])          # no prepare -> workdir None -> teardown must NOT fire
+
+    def test_merge_with_bare_filename_paths(self):                 # kills L109 (dirname or ".")
+        open(os.path.join(self.tmp, "agent-0.jsonl"), "w").write(
+            json.dumps({"agent_id": "0", "unit": "u1", "ok": True}) + "\n")
+        cwd = os.getcwd(); os.chdir(self.tmp)
+        try:
+            summ = merge(self.tmp, "succ.jsonl", "fail.jsonl")     # bare names -> dirname is ""
+            self.assertEqual(summ["successes"], 1)
+        finally:
+            os.chdir(cwd)
+
+    def test_merge_skips_non_agent_files(self):                    # kills L113 (startswith AND endswith)
+        open(os.path.join(self.tmp, "agent-0.jsonl"), "w").write(
+            json.dumps({"agent_id": "0", "unit": "u1", "ok": True}) + "\n")
+        open(os.path.join(self.tmp, "notes.txt"), "w").write("ignore")            # not .jsonl
+        open(os.path.join(self.tmp, "summary.jsonl"), "w").write("not agent data\n")  # not agent-
+        summ = merge(self.tmp, os.path.join(self.tmp, "s.jsonl"), os.path.join(self.tmp, "f.jsonl"))
+        self.assertEqual(summ["merged"], 1)  # only the real agent log; the others must be skipped
+
+    def test_fanout_empty_population_does_not_crash(self):         # kills L142 (... or 1)
+        summ = fanout([], lambda u, w: (True, "ok"), n_agents=4, out_dir=self.tmp)
+        self.assertEqual(summ["agents"], 0)  # workers would be 0 -> ThreadPoolExecutor raises
+        self.assertEqual(summ["merged"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()
