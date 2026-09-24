@@ -1,7 +1,7 @@
 """corral -- run many test agents over one sandbox, in isolation, and merge their results SAFELY.
 
-The problem it solves, in Chris's words: a fan-out of agents that each save files to the same
-folder at once corrupts or loses results. corral's rule is that **no two agents ever write the same
+The problem it solves: a fan-out of agents that each save files to the same folder at once
+corrupts or loses results. The rule here is that **no two agents ever write the same
 file**, and the shared result files are written by exactly ONE step, after every agent is done.
 
     split_population   discover the work, split it into N disjoint slices (never a typed list)

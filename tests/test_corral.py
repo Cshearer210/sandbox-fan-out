@@ -1,6 +1,6 @@
 """Sandbox-testing the fan-out MECHANISM itself, in both directions and under stress.
 
-Chris's requirement: prove that many agents running at once do not corrupt or lose results, and
+The requirement: prove that many agents running at once do not corrupt or lose results, and
 that nothing writes the shared folders concurrently. These tests plant a known population, fan it
 out under real thread concurrency, and assert every result appears EXACTLY once, split correctly,
 with the shared files written only by the final merge.
@@ -11,6 +11,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from corral.core import (split_population, checkout, cleanup, run_slice, merge, fanout,  # noqa: E402
@@ -36,7 +37,7 @@ class IsolationTest(unittest.TestCase):
         self.src = tempfile.mkdtemp()
         for rel in ("a/x.txt", "b/y.txt", "c/z.txt"):
             p = os.path.join(self.src, rel); os.makedirs(os.path.dirname(p), exist_ok=True)
-            open(p, "w").write(rel)
+            Path(p).write_text(rel)
 
     def tearDown(self):
         shutil.rmtree(self.src, ignore_errors=True)
@@ -117,7 +118,7 @@ class MutationGuardTest(unittest.TestCase):
         self.src = tempfile.mkdtemp()
         for rel in ("pkg/a.txt", "pkg/sub/b.txt"):
             p = os.path.join(self.src, rel)
-            os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "w").write(rel)
+            os.makedirs(os.path.dirname(p), exist_ok=True); Path(p).write_text(rel)
         self.tmp = tempfile.mkdtemp()
 
     def tearDown(self):
@@ -142,7 +143,7 @@ class MutationGuardTest(unittest.TestCase):
         self.assertEqual(calls, [])          # no prepare -> workdir None -> teardown must NOT fire
 
     def test_merge_with_bare_filename_paths(self):                 # kills L109 (dirname or ".")
-        open(os.path.join(self.tmp, "agent-0.jsonl"), "w").write(
+        Path(os.path.join(self.tmp, "agent-0.jsonl")).write_text(
             json.dumps({"agent_id": "0", "unit": "u1", "ok": True}) + "\n")
         cwd = os.getcwd(); os.chdir(self.tmp)
         try:
@@ -152,10 +153,10 @@ class MutationGuardTest(unittest.TestCase):
             os.chdir(cwd)
 
     def test_merge_skips_non_agent_files(self):                    # kills L113 (startswith AND endswith)
-        open(os.path.join(self.tmp, "agent-0.jsonl"), "w").write(
+        Path(os.path.join(self.tmp, "agent-0.jsonl")).write_text(
             json.dumps({"agent_id": "0", "unit": "u1", "ok": True}) + "\n")
-        open(os.path.join(self.tmp, "notes.txt"), "w").write("ignore")            # not .jsonl
-        open(os.path.join(self.tmp, "summary.jsonl"), "w").write("not agent data\n")  # not agent-
+        Path(os.path.join(self.tmp, "notes.txt")).write_text("ignore")            # not .jsonl
+        Path(os.path.join(self.tmp, "summary.jsonl")).write_text("not agent data\n")  # not agent-
         summ = merge(self.tmp, os.path.join(self.tmp, "s.jsonl"), os.path.join(self.tmp, "f.jsonl"))
         self.assertEqual(summ["merged"], 1)  # only the real agent log; the others must be skipped
 
