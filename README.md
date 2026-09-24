@@ -146,7 +146,7 @@ python3 -m corral scoreboard runs/2026-09-23
 | Multi-process / distributed local executor | ↗ roadmap — local executor is threads today |
 | PyPI package | ↗ roadmap — clone-and-run today |
 
-As of the last run: **16 tests pass** (`python3 -m unittest discover -s tests`).
+As of the last run: **152 tests pass** (`python3 -m unittest discover -s tests`), at **98% line coverage** of the `corral` package (`core.py` at 100%). The suite runs on the standard library alone; the property-based tests use `hypothesis` when it is installed and skip cleanly when it is not.
 
 ## The safety properties, as tests
 

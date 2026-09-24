@@ -18,7 +18,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from corral import plan_prompts, merge, fanout   # noqa: E402
+from corral import plan_prompts, merge, fanout   # noqa: E402,F401  (merge shown for the reader)
 
 
 def discover_units():

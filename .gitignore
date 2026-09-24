@@ -6,3 +6,7 @@ __pycache__/
 venv/
 runs/
 .pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.egg-info/

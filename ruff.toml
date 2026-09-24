@@ -1,0 +1,17 @@
+# Ruff configuration for sandbox-fan-out.
+#
+# The codebase uses a deliberate, compact style (percent-formatting, occasional single-line
+# blocks). Rather than churn that, the lint focuses on the high-signal rules that catch real
+# defects: syntax errors (E9) and Pyflakes (F) -- unused imports, undefined names, redefinitions,
+# f-string mistakes. That keeps CI meaningful without turning it into a style argument.
+line-length = 120
+target-version = "py311"
+
+[lint]
+select = ["E9", "F"]
+
+[lint.per-file-ignores]
+# Test files and the example insert the repo root on sys.path before importing corral,
+# so their imports are intentionally not at the very top of the file.
+"tests/*" = ["E402"]
+"examples/*" = ["E402"]

@@ -44,7 +44,8 @@ def summarize(out_dir):
     return tally
 
 
-def report(out_dir, out=sys.stdout):
+def report(out_dir, out=None):
+    out = sys.stdout if out is None else out   # late-bind so a redirected sys.stdout is honoured
     t = summarize(out_dir)
     out.write("corral scoreboard  %s\n%s\n" % (out_dir, "=" * 56))
     if not t["units"]:
