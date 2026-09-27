@@ -60,9 +60,23 @@ fan-out, not the agent runtime itself.
 No dependencies. No account. No network. Python standard library only.
 
 ```bash
+pip install git+https://github.com/Cshearer210/sandbox-fan-out
+corral doctor        # verify THIS install actually works -- 4 checks, exits non-zero on any failure
+corral demo          # 15-second live tour
+```
+
+`corral doctor` is there because green CI tells you the *source* is fine and says nothing about the
+copy that landed on your machine. It imports the installed package, checks every name it promises,
+splits a population and asserts the slices are disjoint, then runs a real 7-unit fan-out across 3
+agents and confirms each wrote its own log and the merge folded them exactly once. If your install
+is half-finished, that is the command that says so.
+
+Working on the library itself:
+
+```bash
 git clone https://github.com/Cshearer210/sandbox-fan-out && cd sandbox-fan-out
-python3 -m corral demo                       # 15-second live tour
 python3 -m unittest discover -s tests        # the full test suite
+python3 -m corral demo                       # the module form still works everywhere `corral` does
 ```
 
 ## Use it

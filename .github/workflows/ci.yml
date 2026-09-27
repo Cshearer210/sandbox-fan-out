@@ -6,11 +6,17 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # ⭐ THREE OPERATING SYSTEMS, not one. Added 2026-09-27 after a sibling repo shipped three
+    # Windows-only defects that a green ubuntu-only matrix could not see: a path written with
+    # backslashes read as clean, an 8.3 short name breaking a lookup chain, and a location string
+    # carrying os.sep. Nothing in this repo is known to be platform-sensitive -- which is exactly
+    # the claim a matrix is for, since "I read the code and it looks portable" is not a measurement.
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -21,3 +27,30 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Run the demo
         run: python -m corral demo
+
+  install:
+    # ⛔ THIS JOB EXISTS BECAUSE THE SUITE ABOVE CANNOT SEE THE ONE FAILURE THAT MATTERED MOST.
+    # Until 2026-09-27 this repo had no pyproject.toml at all, so `pip install` failed outright --
+    # and CI was green the whole time, because the tests run from the source tree where imports
+    # work anyway. The tests prove the CODE is right; this proves the INSTALLED PACKAGE is right,
+    # which is the only thing a stranger who downloads it ever touches.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install the package the way a stranger would
+        run: python -m pip install .
+      - name: The console command exists and answers
+        run: corral --help
+      # `cd ..` on purpose: from the repo root the source tree is importable whether or not the
+      # install worked, so a doctor run there would pass on a broken wheel.
+      - name: The install verifies itself, from outside the source tree
+        run: corral doctor
+        working-directory: ..

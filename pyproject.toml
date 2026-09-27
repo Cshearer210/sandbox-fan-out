@@ -1,0 +1,52 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sandbox-fan-out"
+version = "0.1.0"
+description = "Run many test agents over one sandbox, in isolation, and merge their results without ever corrupting them."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+authors = [{ name = "Chris Shearer" }]
+keywords = ["testing", "agents", "parallel", "sandbox", "fan-out", "isolation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Testing",
+]
+
+# ⛔ NO RUNTIME DEPENDENCIES, ON PURPOSE, and the README's own badge says so. A library whose job
+# is to stop parallel agents corrupting shared results should not itself drag in a dependency tree
+# that can break the machine it is installed on.
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=7", "hypothesis>=6"]
+
+# ⭐ THE CONSOLE SCRIPT IS THE POINT OF THIS FILE, not the packaging.
+# Measured 2026-09-27 across all four public repos: not one installed a command a stranger could
+# type. They install and then there is nothing to run -- you have to already know to say
+# `python -m corral`. This makes `corral` a real command, and `python -m corral` keeps working
+# exactly as before, so nothing that already used it breaks.
+[project.scripts]
+corral = "corral.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/Cshearer210/sandbox-fan-out"
+Issues = "https://github.com/Cshearer210/sandbox-fan-out/issues"
+Changelog = "https://github.com/Cshearer210/sandbox-fan-out/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["corral"]
+
+# ⛔ WHY THIS FILE DID NOT EXIST UNTIL NOW, recorded because the absence was invisible.
+# `pip install <this directory>` failed outright -- "Neither 'setup.py' nor 'pyproject.toml'
+# found" -- so the repo could be cloned and read but never actually installed. Nothing said so:
+# the tests pass from a checkout, CI was green, and the README shows usage that works if you are
+# standing in the source tree. The one person it failed for was the one it was published for.
