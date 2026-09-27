@@ -23,8 +23,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      # ⛔ THIS JOB INSTALLED NOTHING UNTIL 2026-09-27, AND HAD BEEN RED SINCE THE TEST SUITE
+      # LANDED. `tests/test_properties.py` imports hypothesis, so `unittest discover` could not even
+      # LOAD it and reported `test_properties ... ERROR` -- on every OS and every Python version.
+      # The suite passes on a developer machine where hypothesis happens to be installed, which is
+      # exactly why nobody noticed: the failure lived only in the empty environment CI actually has.
+      - name: Install the test dependencies the repo declares
+        run: python -m pip install --upgrade pip ".[test]"
       - name: Run the test suite
-        run: python -m unittest discover -s tests -v
+        run: python -m pytest -q
       - name: Run the demo
         run: python -m corral demo
 

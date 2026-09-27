@@ -48,5 +48,11 @@ packages = ["corral"]
 # ⛔ WHY THIS FILE DID NOT EXIST UNTIL NOW, recorded because the absence was invisible.
 # `pip install <this directory>` failed outright -- "Neither 'setup.py' nor 'pyproject.toml'
 # found" -- so the repo could be cloned and read but never actually installed. Nothing said so:
-# the tests pass from a checkout, CI was green, and the README shows usage that works if you are
+# the tests pass from a checkout, and the README showed usage that works only if you are already
 # standing in the source tree. The one person it failed for was the one it was published for.
+#
+# ⚠ AND A CORRECTION TO WHAT THIS COMMENT FIRST SAID: it claimed "CI was green". It was NOT.
+# Measured off the real run logs afterwards -- the `test` job installed no dependencies at all, so
+# `tests/test_properties.py` (which imports hypothesis) could not even LOAD, and that job had been
+# failing on every OS and every Python version since the test suite landed. The claim was written
+# from memory rather than from the run, which is the same mistake in miniature as the one above.
