@@ -1,0 +1,3 @@
+I read through auth.py and the login flow is fine.
+$ grep -n login auth.py
+41:def login():

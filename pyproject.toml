@@ -56,3 +56,11 @@ packages = ["corral"]
 # `tests/test_properties.py` (which imports hypothesis) could not even LOAD, and that job had been
 # failing on every OS and every Python version since the test suite landed. The claim was written
 # from memory rather than from the run, which is the same mistake in miniature as the one above.
+
+[tool.pytest.ini_options]
+# ⛔ THE SUITE IS `tests/`, STATED RATHER THAN DISCOVERED. `proving-ground/` is a HARNESS, not a
+# unit test: it measures four separate tools against planted defects and needs their checkouts
+# present. Left to discovery, pytest imports it and reports collection errors on a machine that
+# has only this repository -- which is every build machine and every stranger's laptop.
+testpaths = ["tests"]
+norecursedirs = ["proving-ground", "build", ".venv", "*.egg-info"]

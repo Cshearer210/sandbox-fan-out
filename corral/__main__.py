@@ -99,8 +99,69 @@ def doctor(argv=None):
     ck("the installed package is real, not an empty namespace", _real_module)
     ck("every public name is importable from the install", _public_api)
     ck("split_population really splits, and the slices are disjoint", _splits_for_real)
+    def _repairs_for_real():
+        # ⛔ THE REPAIR HALF, EXERCISED ON REAL FILES. A doctor that only proved the fan-out
+        # would pass on an install whose whole reason for existing -- fixing what another
+        # tool found -- was missing from the wheel.
+        from corral import apply_fixes
+        from corral.fixer import _marker_finder
+        with tempfile.TemporaryDirectory() as d:
+            open(os.path.join(d, "bad.py"), "w").write("# DEADCANARY\n")
+
+            def prov(t, work):
+                p = os.path.join(work, t.location)
+                open(p, "w").write(open(p).read().replace("DEADCANARY", "ok"))
+                return True
+
+            found = _marker_finder(d)
+            if len(found) != 1:
+                raise RuntimeError("planted 1 defect, the finder saw %d" % len(found))
+            plan = apply_fixes(d, found, prov, _marker_finder)
+            if "DEADCANARY" not in open(os.path.join(d, "bad.py")).read():
+                raise RuntimeError("a DRY RUN modified the real file")
+            rep = apply_fixes(d, found, prov, _marker_finder, dry_run=False)
+            if len(rep["applied"]) != 1 or _marker_finder(d):
+                raise RuntimeError("the repair did not land: %s" % rep["message"])
+            return "1 planted defect: dry run held, wet run repaired, finder agrees"
+
     ck("a real fan-out runs, isolates each agent's log, and merges once",
        _fans_out_and_merges_for_real)
+    def _bundles_for_real():
+        # ⛔ THE HANDOVER, ON REAL FILES. A doctor that proved only the in-place repair would pass
+        # on an install that cannot hand a verified fix to anybody -- which is the half that makes
+        # the repair useful to a person who did not run the finder.
+        from corral import Collector, apply_bundle, apply_fixes, write_bundle
+        from corral.fixer import _marker_finder
+        import shutil as _sh
+        with tempfile.TemporaryDirectory() as d:
+            src, dst, bun = (os.path.join(d, x) for x in ("s", "t", "b"))
+            os.makedirs(os.path.join(src, "pkg"))
+            open(os.path.join(src, "pkg", "bad.py"), "w").write("# DEADCANARY\n")
+            _sh.copytree(src, dst)
+
+            def prov(t, work):
+                p = os.path.join(work, t.location)
+                open(p, "w").write(open(p).read().replace("DEADCANARY", "ok"))
+                return True
+
+            col = Collector()
+            apply_fixes(src, _marker_finder(src), prov, _marker_finder, on_verified=col)
+            man = write_bundle(col.fixes, bun, root=src)
+            if man["areas"] != ["pkg"]:
+                raise RuntimeError("the fix should be labelled pkg, got %r" % man["areas"])
+            r = apply_bundle(bun, dst, areas=["pkg"], dry_run=False)
+            if len(r["applied"]) != 1 or _marker_finder(dst):
+                raise RuntimeError("the bundle did not repair the other copy: %s" % r["message"])
+            open(os.path.join(dst, "pkg", "bad.py"), "w").write("# DEADCANARY newer\n")
+            r2 = apply_bundle(bun, dst, areas=["pkg"], dry_run=False)
+            if not r2["refused"]:
+                raise RuntimeError("a changed target must be REFUSED, got %s" % r2["message"])
+            return "labelled pkg, applied to a second copy, then refused on a changed target"
+
+    ck("a real defect is repaired, and a dry run does not touch the target",
+       _repairs_for_real)
+    ck("a verified repair can be bundled, routed by area, and refused when the target moved",
+       _bundles_for_real)
 
     for state, name, detail in checks:
         sys.stdout.write("  %-4s %s%s\n" % (state + ":", name, ("  -- " + detail) if detail else ""))
@@ -109,22 +170,140 @@ def doctor(argv=None):
     return 0 if not failed else 1
 
 
+def fix(argv=None):
+    """`corral fix --demo` -- prove the repair half end to end, on a throwaway system.
+
+    ⛔ WHY A DEMO AND NOT `corral fix <your repo>`: a repair needs a PATCH PROVIDER, and a patch
+    provider is code -- a mechanical rule for a known defect class, or a model. There is no honest
+    way to take one on a command line, so the real entry point is the Python API
+    (`from corral import apply_fixes`) and this command exists to show it working on a system with
+    a real planted defect, end to end, in front of you.
+    """
+    import os
+    import tempfile
+    from corral.fixer import _Found, _marker_finder, apply_fixes
+
+    # ⛔ THIS BLOCK IS THE FIX FOR A REAL DEFECT FOUND 2026-09-28, and the defect was WORSE than the
+    # flag being decorative. `fix()` ignored argv completely, so:
+    #   `corral fix --demo`  did the demo   (correct)
+    #   `corral fix`         did the demo   (fine)
+    #   `corral fix ~/myrepo` DID THE DEMO -- on a throwaway temp directory -- while printing
+    #                        "found 1 defect", "applied 1 fix", "0 defects remain". A stranger
+    #                        typing the most natural thing in the world would read that as a
+    #                        report about THEIR repository and believe it had been repaired.
+    # The docstring above already explains honestly why there is no `corral fix <path>`; what was
+    # missing is the command SAYING so instead of quietly doing something else. Exit 2, because
+    # being handed an instruction this command cannot carry out is could-not-tell, never success.
+    extra = [a for a in (argv or []) if a != "--demo"]
+    if extra:
+        sys.stdout.write(
+            "corral fix takes no target. %s was ignored, and a command that quietly ignores your\n"
+            "argument is worse than one that refuses it -- you would have read the demo's output\n"
+            "as a report about your own code.\n\n"
+            "  corral fix --demo        prove the repair half end to end, on a throwaway system\n"
+            "  from corral import apply_fixes    repair YOUR system: a repair needs a patch\n"
+            "                                    provider, which is code, not a command-line value\n"
+            % ", ".join(repr(x) for x in extra[:3]))
+        return 2
+
+    def provider(finding, work):
+        p = os.path.join(work, finding.location)
+        open(p, "w").write(open(p).read().replace("DEADCANARY", "real_assert()"))
+        return True
+
+    out = sys.stdout.write
+    with tempfile.TemporaryDirectory() as d:
+        open(os.path.join(d, "good.py"), "w").write("def f():\n    assert f\n")
+        open(os.path.join(d, "broken.py"), "w").write("# DEADCANARY: this test cannot fail\n")
+        out("a system with one planted defect and one healthy file:\n")
+        found = _marker_finder(d)
+        out("  found            %d defect(s): %s\n"
+            % (len(found), ", ".join(f.identity for f in found)))
+
+        plan = apply_fixes(d, found, provider, _marker_finder)
+        out("  dry run         %s\n" % plan["message"])
+        still = "DEADCANARY" in open(os.path.join(d, "broken.py")).read()
+        out("  the real file   %s\n"
+            % ("UNTOUCHED, as it must be during a dry run" if still
+               else "WAS MODIFIED -- that is a bug in the engine"))
+
+        rep = apply_fixes(d, found, provider, _marker_finder, dry_run=False)
+        out("  applied         %s\n" % rep["message"])
+        out("  re-measured     %d defect(s) remain\n" % len(_marker_finder(d)))
+
+        def regressing(finding, work):
+            open(os.path.join(work, finding.location), "w").write("x = 1\n")
+            open(os.path.join(work, "worse.py"), "w").write("# DEADCANARY introduced\n")
+            return True
+
+        open(os.path.join(d, "broken2.py"), "w").write("# DEADCANARY second\n")
+        bad = apply_fixes(d, _marker_finder(d), regressing, _marker_finder, dry_run=False)
+        out("\nand a repair that would BREAK something else:\n")
+        out("  verdict         %d rolled back, %d applied\n"
+            % (len(bad["rolled_back"]), len(bad["applied"])))
+        out("  the system      %s\n"
+            % ("unchanged -- the bad repair never landed"
+               if not os.path.exists(os.path.join(d, "worse.py")) else "GOT THE BAD FIX"))
+
+        # ⭐ AND THE HANDOVER, WHICH IS THE HALF THAT MAKES A REPAIR USEFUL TO SOMEBODY ELSE.
+        from corral.bundle import Collector, apply_bundle, describe, write_bundle
+        import shutil as _sh
+        elsewhere = os.path.join(d, "_elsewhere")
+        os.makedirs(os.path.join(elsewhere, "pkg"))
+        open(os.path.join(elsewhere, "pkg", "same.py"), "w").write("# DEADCANARY over here\n")
+        open(os.path.join(elsewhere, "root.py"), "w").write("# DEADCANARY at the root\n")
+        target = os.path.join(d, "_target")
+        _sh.copytree(elsewhere, target)
+
+        col = Collector()
+        apply_fixes(elsewhere, _marker_finder(elsewhere), provider, _marker_finder,
+                    on_verified=col)
+        bundle = os.path.join(d, "_bundle")
+        write_bundle(col.fixes, bundle, root=elsewhere, note="corral fix --demo")
+        out("\nthe repairs, labelled so they can be routed:\n")
+        for line in describe(bundle).splitlines():
+            out("  " + line + "\n")
+
+        took = apply_bundle(bundle, target, areas=["pkg"], dry_run=False)
+        out("\napplying ONLY the `pkg` area to a different copy of the system:\n")
+        out("  result          %s\n" % took["message"])
+        out("  pkg/same.py     %s\n"
+            % ("repaired" if "DEADCANARY" not in
+               open(os.path.join(target, "pkg", "same.py")).read() else "NOT repaired"))
+        out("  root.py         %s\n"
+            % ("left alone, nobody asked for it" if "DEADCANARY" in
+               open(os.path.join(target, "root.py")).read() else "WRONGLY touched"))
+
+        open(os.path.join(target, "root.py"), "w").write("# DEADCANARY and newer work\n")
+        refused = apply_bundle(bundle, target, areas=["(root)"], dry_run=False)
+        out("\nand the same bundle against a file somebody has since edited:\n")
+        out("  result          %s\n" % refused["message"])
+        out("  their work      %s\n"
+            % ("still there -- the bundle refused rather than overwrite it"
+               if "newer work" in open(os.path.join(target, "root.py")).read()
+               else "OVERWRITTEN"))
+    return 0
+
+
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv and argv[0] == "scoreboard":
         from corral.scoreboard import main as run
         return run(argv[1:])
+    if argv and argv[0] == "fix":
+        return fix(argv[1:])
     if argv and argv[0] == "doctor":
         return doctor(argv[1:])
     if argv and argv[0] in ("-h", "--help", "help"):
         sys.stdout.write("corral -- fan test agents over a sandbox in isolation, merge safely.\n"
                          "  corral demo\n"
+                         "  corral fix --demo              # the repair half, proven end to end\n"
                          "  corral doctor                  # verify this install actually works\n"
                          "  corral scoreboard <out_dir>    # classified tally of a fan-out run\n"
                          "\n(`python3 -m corral ...` does the same thing.)\n")
         return 0
     if argv and argv[0] not in ("demo",):
-        sys.stdout.write("usage: corral [demo|doctor|scoreboard <out_dir>]\n")
+        sys.stdout.write("usage: corral [demo|fix|doctor|scoreboard <out_dir>]\n")
         return 2
     from corral.demo import main as demo_main
     return demo_main(argv[1:] if argv else [])
