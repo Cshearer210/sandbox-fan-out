@@ -126,8 +126,42 @@ def doctor(argv=None):
 
     ck("a real fan-out runs, isolates each agent's log, and merges once",
        _fans_out_and_merges_for_real)
+    def _bundles_for_real():
+        # ⛔ THE HANDOVER, ON REAL FILES. A doctor that proved only the in-place repair would pass
+        # on an install that cannot hand a verified fix to anybody -- which is the half that makes
+        # the repair useful to a person who did not run the finder.
+        from corral import Collector, apply_bundle, apply_fixes, write_bundle
+        from corral.fixer import _marker_finder
+        import shutil as _sh
+        with tempfile.TemporaryDirectory() as d:
+            src, dst, bun = (os.path.join(d, x) for x in ("s", "t", "b"))
+            os.makedirs(os.path.join(src, "pkg"))
+            open(os.path.join(src, "pkg", "bad.py"), "w").write("# DEADCANARY\n")
+            _sh.copytree(src, dst)
+
+            def prov(t, work):
+                p = os.path.join(work, t.location)
+                open(p, "w").write(open(p).read().replace("DEADCANARY", "ok"))
+                return True
+
+            col = Collector()
+            apply_fixes(src, _marker_finder(src), prov, _marker_finder, on_verified=col)
+            man = write_bundle(col.fixes, bun, root=src)
+            if man["areas"] != ["pkg"]:
+                raise RuntimeError("the fix should be labelled pkg, got %r" % man["areas"])
+            r = apply_bundle(bun, dst, areas=["pkg"], dry_run=False)
+            if len(r["applied"]) != 1 or _marker_finder(dst):
+                raise RuntimeError("the bundle did not repair the other copy: %s" % r["message"])
+            open(os.path.join(dst, "pkg", "bad.py"), "w").write("# DEADCANARY newer\n")
+            r2 = apply_bundle(bun, dst, areas=["pkg"], dry_run=False)
+            if not r2["refused"]:
+                raise RuntimeError("a changed target must be REFUSED, got %s" % r2["message"])
+            return "labelled pkg, applied to a second copy, then refused on a changed target"
+
     ck("a real defect is repaired, and a dry run does not touch the target",
        _repairs_for_real)
+    ck("a verified repair can be bundled, routed by area, and refused when the target moved",
+       _bundles_for_real)
 
     for state, name, detail in checks:
         sys.stdout.write("  %-4s %s%s\n" % (state + ":", name, ("  -- " + detail) if detail else ""))
@@ -187,6 +221,44 @@ def fix(argv=None):
         out("  the system      %s\n"
             % ("unchanged -- the bad repair never landed"
                if not os.path.exists(os.path.join(d, "worse.py")) else "GOT THE BAD FIX"))
+
+        # ⭐ AND THE HANDOVER, WHICH IS THE HALF THAT MAKES A REPAIR USEFUL TO SOMEBODY ELSE.
+        from corral.bundle import Collector, apply_bundle, describe, write_bundle
+        import shutil as _sh
+        elsewhere = os.path.join(d, "_elsewhere")
+        os.makedirs(os.path.join(elsewhere, "pkg"))
+        open(os.path.join(elsewhere, "pkg", "same.py"), "w").write("# DEADCANARY over here\n")
+        open(os.path.join(elsewhere, "root.py"), "w").write("# DEADCANARY at the root\n")
+        target = os.path.join(d, "_target")
+        _sh.copytree(elsewhere, target)
+
+        col = Collector()
+        apply_fixes(elsewhere, _marker_finder(elsewhere), provider, _marker_finder,
+                    on_verified=col)
+        bundle = os.path.join(d, "_bundle")
+        write_bundle(col.fixes, bundle, root=elsewhere, note="corral fix --demo")
+        out("\nthe repairs, labelled so they can be routed:\n")
+        for line in describe(bundle).splitlines():
+            out("  " + line + "\n")
+
+        took = apply_bundle(bundle, target, areas=["pkg"], dry_run=False)
+        out("\napplying ONLY the `pkg` area to a different copy of the system:\n")
+        out("  result          %s\n" % took["message"])
+        out("  pkg/same.py     %s\n"
+            % ("repaired" if "DEADCANARY" not in
+               open(os.path.join(target, "pkg", "same.py")).read() else "NOT repaired"))
+        out("  root.py         %s\n"
+            % ("left alone, nobody asked for it" if "DEADCANARY" in
+               open(os.path.join(target, "root.py")).read() else "WRONGLY touched"))
+
+        open(os.path.join(target, "root.py"), "w").write("# DEADCANARY and newer work\n")
+        refused = apply_bundle(bundle, target, areas=["(root)"], dry_run=False)
+        out("\nand the same bundle against a file somebody has since edited:\n")
+        out("  result          %s\n" % refused["message"])
+        out("  their work      %s\n"
+            % ("still there -- the bundle refused rather than overwrite it"
+               if "newer work" in open(os.path.join(target, "root.py")).read()
+               else "OVERWRITTEN"))
     return 0
 
 

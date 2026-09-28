@@ -228,6 +228,47 @@ report = apply_fixes(root, findings, patch_provider, finder, dry_run=False)
 A *finding* is any object with `.identity`, `.location`, `.corroboration`, `.max_confidence` and
 `.trust` — see `corral/fixer.py` for the contract.
 
+### Handing the repairs to somebody else
+
+Verifying a repair and being able to *apply* it are different problems. The engine above can merge
+a verified fix straight back, which works when the system in front of you is the system being
+repaired. It is no use when the two are separated — findings produced on one machine, applied on
+another; a repair reviewed before it lands; a set of fixes handed to somebody who has to decide
+which parts of their own system to accept.
+
+So a verified repair can leave as a **bundle**, and every fix in it is **labelled with the area of
+the system it touches**:
+
+```
+2 fix(es) across 2 area(s): (root), pkg
+  [pkg] dc:pkg/same.py -- repairs pkg/same.py (corroborated)
+      write  pkg/same.py
+  [(root)] dc:root.py -- repairs root.py (corroborated)
+      write  root.py
+```
+
+```python
+from corral import Collector, apply_fixes, write_bundle, apply_bundle, describe
+
+col = Collector()
+apply_fixes(root, findings, patch_provider, finder, on_verified=col)   # still a dry run
+write_bundle(col.fixes, "out/bundle", root=root)
+
+print(describe("out/bundle"))                                  # read it before accepting it
+apply_bundle("out/bundle", other_system, areas=["pkg"], dry_run=False)   # take only your part
+```
+
+| | |
+|---|---|
+| **labelled by area** | derived from the files a fix actually touches, never from a category somebody typed — so a rename cannot leave the label quietly wrong |
+| **content-addressed** | every target records the hash it is expected to have *before* the patch. A bundle applied to a file that has since changed is **refused**, not merged over somebody's newer work |
+| **self-describing** | `describe()` prints what each fix repairs and which files it writes, in plain text, before you accept anything |
+| **dry-run first** | the default, the same as the engine |
+
+**A bundle is not a trust boundary, and the module says so.** It carries file contents, so applying
+one you did not produce writes somebody else's bytes into your system. It refuses on a content
+mismatch and tells you what it would write; it cannot tell you whether the patch is a good idea.
+
 ## The proving ground
 
 `proving-ground/` is the harness that decides whether these tools actually work: a system with
