@@ -129,7 +129,13 @@ def test_identical_content_is_stored_once(tmp_path):
     (src / "b.py").write_text("# DEADCANARY two\n", encoding="utf-8")
 
     def same_bytes(t, work):
-        open(os.path.join(work, t.location), "w").write("identical\n")
+        # ⛔ BINARY, AND THAT IS THE POINT OF THIS TEST. In text mode Windows translates "\n" into
+        # "\r\n" on the way to disk, so the bytes stored -- and therefore their hash -- differ by
+        # platform, and an assertion about a specific digest fails there and nowhere else. The
+        # engine itself only ever reads and writes bytes; this fixture has to do the same or it is
+        # testing Python's newline handling rather than content-addressing.
+        with open(os.path.join(work, t.location), "wb") as fh:
+            fh.write(b"identical\n")
         return True
 
     col = Collector()
