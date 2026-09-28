@@ -183,6 +183,29 @@ def fix(argv=None):
     import tempfile
     from corral.fixer import _Found, _marker_finder, apply_fixes
 
+    # ⛔ THIS BLOCK IS THE FIX FOR A REAL DEFECT FOUND 2026-09-28, and the defect was WORSE than the
+    # flag being decorative. `fix()` ignored argv completely, so:
+    #   `corral fix --demo`  did the demo   (correct)
+    #   `corral fix`         did the demo   (fine)
+    #   `corral fix ~/myrepo` DID THE DEMO -- on a throwaway temp directory -- while printing
+    #                        "found 1 defect", "applied 1 fix", "0 defects remain". A stranger
+    #                        typing the most natural thing in the world would read that as a
+    #                        report about THEIR repository and believe it had been repaired.
+    # The docstring above already explains honestly why there is no `corral fix <path>`; what was
+    # missing is the command SAYING so instead of quietly doing something else. Exit 2, because
+    # being handed an instruction this command cannot carry out is could-not-tell, never success.
+    extra = [a for a in (argv or []) if a != "--demo"]
+    if extra:
+        sys.stdout.write(
+            "corral fix takes no target. %s was ignored, and a command that quietly ignores your\n"
+            "argument is worse than one that refuses it -- you would have read the demo's output\n"
+            "as a report about your own code.\n\n"
+            "  corral fix --demo        prove the repair half end to end, on a throwaway system\n"
+            "  from corral import apply_fixes    repair YOUR system: a repair needs a patch\n"
+            "                                    provider, which is code, not a command-line value\n"
+            % ", ".join(repr(x) for x in extra[:3]))
+        return 2
+
     def provider(finding, work):
         p = os.path.join(work, finding.location)
         open(p, "w").write(open(p).read().replace("DEADCANARY", "real_assert()"))
