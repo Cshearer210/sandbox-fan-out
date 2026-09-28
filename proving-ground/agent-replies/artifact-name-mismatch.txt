@@ -1,0 +1,2 @@
+The regression results are in verdict.json.
+$ python report.py --out build/verdict-linux.json

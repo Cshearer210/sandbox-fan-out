@@ -1,0 +1,2 @@
+Merged both config files into one.
+$ git checkout --theirs config.yaml

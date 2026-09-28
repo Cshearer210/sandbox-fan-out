@@ -1,0 +1,524 @@
+{
+  "planted": [
+    {
+      "id": "cr-orphan",
+      "tool": "rag-ghost",
+      "type": "orphan-dead-work",
+      "path": "code-rot/reports/exporter.py",
+      "expect": "graph: orphan",
+      "catchable": "static",
+      "group": "code-structure",
+      "note": "built, correct, nothing imports it -- the 4th category of loss"
+    },
+    {
+      "id": "cr-dangling",
+      "tool": "rag-ghost",
+      "type": "moved-reference",
+      "path": "code-rot/inventory/sync.py",
+      "expect": "graph: dangling (inventory.warehouse)",
+      "catchable": "static",
+      "group": "code-structure",
+      "note": "from inventory import warehouse, but warehouse.py was deleted -- labelling looks like memory"
+    },
+    {
+      "id": "cr-misfiled",
+      "tool": "rag-ghost",
+      "type": "misfiled",
+      "path": "code-rot/inventory/test_sync.py",
+      "expect": "organize: misfiled",
+      "catchable": "static",
+      "group": "code-structure",
+      "note": "a test_ file outside tests/ -- the one mechanical fix RAG-Ghost applies and proves"
+    },
+    {
+      "id": "cr-ungated",
+      "tool": "rag-ghost",
+      "type": "untested-subsystem",
+      "path": "code-rot/shipping/labels.py",
+      "expect": "harness: ungated (shipping)",
+      "catchable": "static",
+      "group": "code-structure",
+      "note": "real code, no test anywhere -- a subsystem nothing guards"
+    },
+    {
+      "id": "cr-dup",
+      "tool": "rag-ghost",
+      "type": "duplicate-definition",
+      "path": "code-rot/promo/discount.py",
+      "expect": "graph/symbol: apply_discount defined twice",
+      "catchable": "static",
+      "group": "code-structure",
+      "note": "apply_discount is defined here AND in pricing/discount.py, drifted -- fix one, other stays stale"
+    },
+    {
+      "id": "cr-absent-clean",
+      "tool": "rag-ghost",
+      "type": "absent-looks-like-clean",
+      "path": "code-rot/analytics/__init__.py",
+      "expect": "scan/organize: empty subsystem, UNKNOWN not clean",
+      "catchable": "static",
+      "group": "code-structure",
+      "note": "analytics/ holds only __init__.py -- scaffolded, never built, reads as fine"
+    },
+    {
+      "id": "cr-dead-export",
+      "tool": "rag-ghost",
+      "type": "dead-export",
+      "path": "code-rot/util/textutil.py",
+      "expect": "graph: symbol defined+exported, no caller",
+      "catchable": "static",
+      "group": "code-structure",
+      "note": "normalize_ph is exported but nothing calls it"
+    },
+    {
+      "id": "cr-grep-not-call",
+      "tool": "rag-ghost",
+      "type": "grep-not-call",
+      "path": "code-rot/util/notes.py",
+      "expect": "symbol-index: a mention is not a call",
+      "catchable": "static",
+      "group": "code-structure",
+      "note": "normalize_ph appears only in a comment/string here -- grep says 'used', AST says no"
+    },
+    {
+      "id": "cr-config-noread",
+      "tool": "rag-ghost",
+      "type": "config-key-no-reader",
+      "path": "code-rot/settings.yaml",
+      "expect": "who-reads: 0 readers -> dead knob",
+      "catchable": "static",
+      "group": "config",
+      "note": "max_retries is defined but nothing reads it -- a silent no-op knob"
+    },
+    {
+      "id": "cr-env-unset",
+      "tool": "rag-ghost",
+      "type": "env-var-referenced-never-set",
+      "path": "code-rot/reader.py",
+      "expect": "env-cross: SYNC_TIMEOUT read, set in no manifest",
+      "catchable": "static",
+      "group": "config",
+      "note": "SYNC_TIMEOUT is read with a default but defined in no .env -- a silent fallback"
+    },
+    {
+      "id": "cr-ghost-pointer",
+      "tool": "rag-ghost",
+      "type": "ghost-plan-item",
+      "path": "code-rot/RUNBOOK.md",
+      "expect": "path-resolve: names a file that is absent",
+      "catchable": "static",
+      "group": "code-structure",
+      "note": "the runbook tells a reader to run a script that was never created"
+    },
+    {
+      "id": "cr-assertion-free",
+      "tool": "rag-ghost",
+      "type": "assertion-free-test",
+      "path": "code-rot/tests/test_vacuous.py",
+      "expect": "test-shape: body runs code, asserts nothing",
+      "catchable": "static",
+      "group": "tests",
+      "note": "a test that exercises code and checks nothing -- always green, counts as coverage"
+    },
+    {
+      "id": "cr-tautological",
+      "tool": "rag-ghost",
+      "type": "tautological-test",
+      "path": "code-rot/tests/test_tautology.py",
+      "expect": "test-shape: asserts the language, not the code",
+      "catchable": "mutation",
+      "group": "tests",
+      "note": "asserts add(2,3)==2+3 -- re-implements the code, cannot fail"
+    },
+    {
+      "id": "cr-swallowed",
+      "tool": "rag-ghost",
+      "type": "swallowed-exception-test",
+      "path": "code-rot/tests/test_swallow.py",
+      "expect": "test-shape: except: pass hides the failure",
+      "catchable": "static",
+      "group": "tests",
+      "note": "a try/except around the assertion turns any failure green"
+    },
+    {
+      "id": "cr-always-skipped",
+      "tool": "rag-ghost",
+      "type": "always-skipped-test",
+      "path": "code-rot/tests/test_skipped.py",
+      "expect": "test-shape: permanent skip in a green suite",
+      "catchable": "static",
+      "group": "tests",
+      "note": "a permanently skipped test that reads as part of a passing suite"
+    },
+    {
+      "id": "cr-shallow-scan",
+      "tool": "rag-ghost",
+      "type": "shallow-scan",
+      "path": null,
+      "expect": "scan: verdict with no depth/denominator",
+      "catchable": "static",
+      "group": "code-structure",
+      "note": "a scan-shaped function returning 'all clean' without saying out of how many",
+      "record_only": true
+    },
+    {
+      "id": "cr-needless-parallel",
+      "tool": "rag-ghost",
+      "type": "needless-parallelism",
+      "path": null,
+      "expect": "analyse: refuse fan-out that does not divide",
+      "catchable": "static",
+      "group": "code-structure",
+      "note": "fan-out over a population that fits one context -- ANALYSE stage answers this",
+      "record_only": true
+    },
+    {
+      "id": "cr-surviving-mutant",
+      "tool": "rag-ghost/deadcanary",
+      "type": "surviving-mutant",
+      "path": null,
+      "expect": "mutation: code changes, suite stays green",
+      "catchable": "mutation",
+      "group": "tests",
+      "note": "the boundary/operator a test never pins -- only mutation proves it",
+      "record_only": true
+    },
+    {
+      "id": "ar-bare-done",
+      "tool": "claimproof",
+      "type": "unbacked-completion",
+      "path": "agent-replies/bare-done.txt",
+      "expect": "flag",
+      "catchable": "text",
+      "group": "agent-claims",
+      "note": "completion word, nothing checkable near it"
+    },
+    {
+      "id": "ar-unbacked-test-count",
+      "tool": "claimproof",
+      "type": "unbacked-test-claim",
+      "path": "agent-replies/unbacked-test-count.txt",
+      "expect": "flag",
+      "catchable": "text",
+      "group": "agent-claims",
+      "note": "'all tests pass', no count, no run output"
+    },
+    {
+      "id": "ar-scope-hedge",
+      "tool": "claimproof",
+      "type": "scope-qualifier-hedge",
+      "path": "agent-replies/scope-hedge.txt",
+      "expect": "flag",
+      "catchable": "text",
+      "group": "agent-claims",
+      "note": "a quiet 'for now' narrows the spec while claiming done"
+    },
+    {
+      "id": "ar-merge-dropped-side",
+      "tool": "claimproof",
+      "type": "merge-dropped-a-side",
+      "path": "agent-replies/merge-dropped-side.txt",
+      "expect": "flag",
+      "catchable": "text",
+      "group": "agent-claims",
+      "note": "two-way merge claim next to a one-side receipt"
+    },
+    {
+      "id": "ar-artifact-name-mismatch",
+      "tool": "claimproof",
+      "type": "artifact-name-mismatch",
+      "path": "agent-replies/artifact-name-mismatch.txt",
+      "expect": "flag",
+      "catchable": "text",
+      "group": "agent-claims",
+      "note": "cites an output the run spelled differently (near miss)"
+    },
+    {
+      "id": "ar-read-vs-searched",
+      "tool": "claimproof",
+      "type": "unread-source",
+      "path": "agent-replies/read-vs-searched.txt",
+      "expect": "flag",
+      "catchable": "text",
+      "group": "agent-claims",
+      "note": "claims READ where the only receipt is a search"
+    },
+    {
+      "id": "ar-fabricated-exit",
+      "tool": "claimproof",
+      "type": "fabricated-exit-code",
+      "path": "agent-replies/fabricated-exit.txt",
+      "expect": "ground-truth",
+      "catchable": "ground",
+      "group": "agent-claims",
+      "note": "says exit=0, command really returned 1"
+    },
+    {
+      "id": "ar-file-not-written",
+      "tool": "claimproof",
+      "type": "file-not-actually-written",
+      "path": "agent-replies/file-not-written.txt",
+      "expect": "ground-truth",
+      "catchable": "ground",
+      "group": "agent-claims",
+      "note": "claims a file created that is absent on disk"
+    },
+    {
+      "id": "ar-wrong-copy",
+      "tool": "claimproof",
+      "type": "wrong-copy-edited",
+      "path": "agent-replies/wrong-copy.txt",
+      "expect": "ground-truth",
+      "catchable": "ground",
+      "group": "agent-claims",
+      "note": "edited an archived copy, the live one is unchanged"
+    },
+    {
+      "id": "ar-slightly-wrong-filename",
+      "tool": "claimproof",
+      "type": "slightly-wrong-filename",
+      "path": "agent-replies/slightly-wrong-filename.txt",
+      "expect": "ground-truth",
+      "catchable": "ground",
+      "group": "agent-claims",
+      "note": "cites output/summary.json; real file is outputs/summary.json"
+    },
+    {
+      "id": "ar-contradicted-by-diff",
+      "tool": "claimproof",
+      "type": "contradicted-by-git-diff",
+      "path": "agent-replies/contradicted-by-diff.txt",
+      "expect": "ground-truth",
+      "catchable": "ground",
+      "group": "agent-claims",
+      "note": "claims removed debug logging; diff shows it still there"
+    },
+    {
+      "id": "ar-todo-left",
+      "tool": "claimproof",
+      "type": "todo-left-behind",
+      "path": "agent-replies/todo-left.txt",
+      "expect": "ground-truth",
+      "catchable": "ground",
+      "group": "agent-claims",
+      "note": "'implemented' but the named file's body is a TODO"
+    },
+    {
+      "id": "ar-stale-number",
+      "tool": "claimproof",
+      "type": "stale-number-cited",
+      "path": "agent-replies/stale-number.txt",
+      "expect": "ground-truth",
+      "catchable": "ground",
+      "group": "agent-claims",
+      "note": "quotes 79 open items; the file says 598"
+    },
+    {
+      "id": "ar-count-no-run",
+      "tool": "claimproof",
+      "type": "count-with-no-run",
+      "path": "agent-replies/count-no-run.txt",
+      "expect": "text-to-ground",
+      "catchable": "text-to-ground",
+      "group": "agent-claims",
+      "note": "asserts 128 tests pass with no runner output"
+    },
+    {
+      "id": "ar-verified-no-verify",
+      "tool": "claimproof",
+      "type": "verified-without-verification",
+      "path": "agent-replies/verified-no-verify.txt",
+      "expect": "text-to-ground",
+      "catchable": "text-to-ground",
+      "group": "agent-claims",
+      "note": "'verified' with no check after the last edit"
+    },
+    {
+      "id": "ar-honest-evidence",
+      "tool": "claimproof",
+      "type": "quiet-honest",
+      "path": "agent-replies/honest-evidence.txt",
+      "expect": "quiet",
+      "catchable": "text",
+      "group": "agent-claims",
+      "note": "real evidence attached"
+    },
+    {
+      "id": "ar-adjective-precision",
+      "tool": "claimproof",
+      "type": "quiet-precision-adjective",
+      "path": "agent-replies/adjective-precision.txt",
+      "expect": "quiet",
+      "catchable": "text",
+      "group": "agent-claims",
+      "note": "claim-word as an adjective -- the biggest historical false positive"
+    },
+    {
+      "id": "ar-negated-precision",
+      "tool": "claimproof",
+      "type": "quiet-precision-negated",
+      "path": "agent-replies/negated-precision.txt",
+      "expect": "quiet",
+      "catchable": "text",
+      "group": "agent-claims",
+      "note": "negated/past context"
+    },
+    {
+      "id": "ar-honest-uncertainty",
+      "tool": "claimproof",
+      "type": "quiet-uncertainty",
+      "path": "agent-replies/honest-uncertainty.txt",
+      "expect": "quiet",
+      "catchable": "text",
+      "group": "agent-claims",
+      "note": "honest 'could not verify'"
+    },
+    {
+      "id": "ar-searched-honestly",
+      "tool": "claimproof",
+      "type": "quiet-searched",
+      "path": "agent-replies/searched-honestly.txt",
+      "expect": "quiet",
+      "catchable": "text",
+      "group": "agent-claims",
+      "note": "'searched' stated honestly"
+    },
+    {
+      "id": "dp-filter",
+      "tool": "deadcanary",
+      "type": "where-clause-neuters-test",
+      "path": "data-project/models/orders.sql",
+      "expect": "deadcanary: dead canary (filter disarms not_null)",
+      "catchable": "mutation",
+      "group": "data-dbt",
+      "note": "not_null(status) can never fail: the model filters out null-status rows"
+    },
+    {
+      "id": "dp-coalesce",
+      "tool": "deadcanary",
+      "type": "coalesce-neuters-test",
+      "path": "data-project/models/payments.sql",
+      "expect": "deadcanary: dead canary (coalesce disarms not_null)",
+      "catchable": "mutation",
+      "group": "data-dbt",
+      "note": "not_null(amount) can never fail: coalesce fills every null with 0"
+    },
+    {
+      "id": "dp-distinct",
+      "tool": "deadcanary",
+      "type": "unique-test-post-dedup",
+      "path": "data-project/models/users.sql",
+      "expect": "deadcanary: dead canary (distinct disarms unique)",
+      "catchable": "mutation",
+      "group": "data-dbt",
+      "note": "unique(user_id) can never fail: the model already SELECT DISTINCTs it"
+    },
+    {
+      "id": "dp-sevwarn",
+      "tool": "deadcanary",
+      "type": "severity-warn-ignored",
+      "path": "data-project/models/refunds.sql",
+      "expect": "deadcanary: real test, severity warn -> never breaks build",
+      "catchable": "mutation",
+      "group": "data-dbt",
+      "note": "not_null(amount) is set severity: warn, so a violation is logged and ignored"
+    },
+    {
+      "id": "dp-superset",
+      "tool": "deadcanary",
+      "type": "accepted-values-superset",
+      "path": "data-project/models/regions.sql",
+      "expect": "deadcanary: accepted_values lists more than the column ever holds",
+      "catchable": "mutation",
+      "group": "data-dbt",
+      "note": "accepted_values includes NE/NW/SE/SW that never occur -- no value can be rejected"
+    },
+    {
+      "id": "dp-empty-relation",
+      "tool": "deadcanary",
+      "type": "test-on-empty-relation",
+      "path": null,
+      "expect": "deadcanary: not_null/unique pass vacuously on 0 rows",
+      "catchable": "mutation",
+      "group": "data-dbt",
+      "note": "a model that returns no rows -> every column test passes on nothing",
+      "record_only": true
+    },
+    {
+      "id": "dp-disabled-model",
+      "tool": "deadcanary",
+      "type": "disabled-model-with-tests",
+      "path": null,
+      "expect": "deadcanary: enabled:false, tests never run but 'pass'",
+      "catchable": "mutation",
+      "group": "data-dbt",
+      "note": "defined-test count vs executed-test count disagree -> phantom coverage",
+      "record_only": true
+    },
+    {
+      "id": "fc-three-valued",
+      "tool": "full-circle",
+      "type": "three-valued-return",
+      "path": "fc-rot/three_valued.py",
+      "expect": "quiet",
+      "why": "law 10 requires an early `return 2` for CANNOT TELL; flagging it is crying wolf"
+    },
+    {
+      "id": "fc-ignored-param",
+      "tool": "full-circle",
+      "type": "registry-signature",
+      "path": "fc-rot/ignored_param.py",
+      "expect": "quiet",
+      "why": "every registered check takes one unused arg so the registry can call them uniformly"
+    },
+    {
+      "id": "fc-absent-is-clean",
+      "tool": "full-circle",
+      "type": "absent-looks-like-clean",
+      "path": "fc-rot/absent_is_clean.py",
+      "expect": "swallowed-exception",
+      "catchable": "text",
+      "why": "a corrupt source and an empty one return the same value -- the caller cannot tell"
+    },
+    {
+      "id": "sf-exactly-once",
+      "tool": "sandbox-fan-out",
+      "type": "exactly-once-under-concurrency",
+      "path": "(no fixture -- a real fanout run)",
+      "expect": "holds",
+      "catchable": "runtime",
+      "group": "fan-out-invariants",
+      "note": "40 units across 8 real threads: every result appears exactly once. A naive fan-out loses or double-counts lines here and the loss is silent"
+    },
+    {
+      "id": "sf-raise-is-logged",
+      "tool": "sandbox-fan-out",
+      "type": "raising-unit-is-logged",
+      "path": "(no fixture -- a real fanout run)",
+      "expect": "holds",
+      "catchable": "runtime",
+      "group": "fan-out-invariants",
+      "note": "a unit that raises becomes a LOGGED FAILURE, never a crash of the whole run"
+    },
+    {
+      "id": "sf-more-agents-than-units",
+      "tool": "sandbox-fan-out",
+      "type": "empty-slice",
+      "path": "(no fixture -- a real fanout run)",
+      "expect": "holds",
+      "catchable": "runtime",
+      "group": "fan-out-invariants",
+      "note": "1 unit across 8 agents: the empty slices invent no results and crash nothing"
+    },
+    {
+      "id": "sf-slices-disjoint",
+      "tool": "sandbox-fan-out",
+      "type": "disjoint-balanced-slices",
+      "path": "(no fixture -- a real split_population call)",
+      "expect": "holds",
+      "catchable": "runtime",
+      "group": "fan-out-invariants",
+      "note": "the slices cover the whole population with no unit in two of them"
+    }
+  ]
+}

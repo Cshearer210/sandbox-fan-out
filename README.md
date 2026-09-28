@@ -174,3 +174,74 @@ As of the last run: **152 tests pass** (`python3 -m unittest discover -s tests`)
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+## Repairing what another tool found
+
+Finding a defect and repairing one are different jobs with different risks. A finder that is wrong
+costs you a wasted look. **A fixer that is wrong costs you your codebase.** So the repair half of
+this library is built so that a bad fix *cannot land*, rather than being unlikely to:
+
+```
+corral fix --demo
+```
+
+```
+a system with one planted defect and one healthy file:
+  found            1 defect(s): dc:broken.py
+  dry run         DRY RUN: 1 verified fix(es) staged, not applied.
+  the real file   UNTOUCHED, as it must be during a dry run
+  applied         Applied 1 fix(es); 0 conflict(s) held back.
+  re-measured     0 defect(s) remain
+
+and a repair that would BREAK something else:
+  verdict         1 rolled back, 0 applied
+  the system      unchanged -- the bad repair never landed
+```
+
+The eight properties that make that true, all mechanical:
+
+| | |
+|---|---|
+| **isolated clone** | every fix is tried on a throwaway copy; your system is untouched until it is verified |
+| **verify both directions** | after a fix the finder runs *again*: the defect must disappear **and** no new one may appear |
+| **rollback on regression** | anything that fails that test is discarded with its clone; nothing partial is left behind |
+| **single-writer merge** | one writer applies verified fixes, so parallel agents cannot collide on one file |
+| **disjoint work** | findings are de-duplicated by identity, so no two agents fix the same thing |
+| **behavioural targeting** | a fix is located by the finding's own signal, never a hard-coded path |
+| **model-agnostic** | the patch comes from a pluggable provider -- mechanical rule or model. The engine trusts neither |
+| **dry-run first** | the default. A call that forgets the keyword reports a plan instead of writing |
+
+**The two defaults are the safety story, and both are killed by mutation in the test suite** --
+`dry_run=True`, so a forgotten keyword cannot write to a live system, and
+`require_corroborated=True`, so a defect only one method believes in is never auto-repaired. If
+either default is ever flipped, the tests fail rather than somebody's repository.
+
+Used from Python, with any finder you like — the engine imports no defect model:
+
+```python
+from corral import apply_fixes
+
+report = apply_fixes(root, findings, patch_provider, finder)   # dry run by default
+report = apply_fixes(root, findings, patch_provider, finder, dry_run=False)
+```
+
+A *finding* is any object with `.identity`, `.location`, `.corroboration`, `.max_confidence` and
+`.trust` — see `corral/fixer.py` for the contract.
+
+## The proving ground
+
+`proving-ground/` is the harness that decides whether these tools actually work: a system with
+**planted defects of known kinds**, and a scoreboard saying, per defect, whether the tool caught
+it, stayed correctly quiet, or missed it. A detector is only trustworthy in both directions — it
+must fire on a real defect *and* stay silent on a clean twin of the same code — and that is what
+this measures.
+
+```
+python3 proving-ground/paths.py      # which companion tools it can see
+python3 proving-ground/run_all.py    # the scoreboard
+```
+
+It needs the companion tools checked out; it finds them next to this repository, or you can point
+it at them with `RAGGHOST_DIR`, `CLAIMPROOF_DIR`, `FULLCIRCLE_DIR`. **When it cannot find one it
+says so rather than scoring it clean** — "found nothing" and "could not look" must never produce
+the same answer.

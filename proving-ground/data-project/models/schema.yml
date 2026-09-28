@@ -1,0 +1,25 @@
+version: 2
+models:
+  - name: orders
+    columns:
+      - name: status
+        tests: [not_null]
+  - name: payments
+    columns:
+      - name: amount
+        tests: [not_null]
+  - name: users
+    columns:
+      - name: user_id
+        tests: [unique]
+  - name: refunds
+    columns:
+      - name: amount
+        tests:
+          - not_null:
+              config: {severity: warn}
+  - name: regions
+    columns:
+      - name: code
+        tests:
+          - accepted_values: {values: [N,S,E,W,NE,NW,SE,SW]}

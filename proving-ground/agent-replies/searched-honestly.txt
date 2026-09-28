@@ -1,0 +1,3 @@
+I searched auth.py for the login handler.
+$ grep -n login auth.py
+41:def login():
