@@ -3,6 +3,7 @@
 **Run many test agents over one sandbox, in isolation, and merge their results without ever corrupting them.**
 
 [![CI](https://github.com/Cshearer210/sandbox-fan-out/actions/workflows/ci.yml/badge.svg)](https://github.com/Cshearer210/sandbox-fan-out/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/sandbox-fan-out.svg)](https://pypi.org/project/sandbox-fan-out/)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)
@@ -86,8 +87,8 @@ fan-out, not the agent runtime itself.
 No dependencies. No account. No network. Python standard library only.
 
 ```bash
-pip install git+https://github.com/Cshearer210/sandbox-fan-out
-corral doctor        # verify THIS install actually works -- 4 checks, exits non-zero on any failure
+pip install sandbox-fan-out
+corral doctor        # verify THIS install actually works -- 6 checks, exits non-zero on any failure
 corral demo          # 15-second live tour
 ```
 
