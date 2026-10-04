@@ -7,6 +7,18 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)
 
+## See it work
+
+![corral repairing a planted defect, then rolling back a repair that would break something](https://raw.githubusercontent.com/Cshearer210/sandbox-fan-out/main/assets/demo.gif)
+
+19 seconds. A defect is planted, a **dry run touches nothing**, the repair is applied, and the
+world is re-measured to zero defects. Then the beat that is the whole point: **a repair that would
+break something else, rolled back, with the system left unchanged.** Anyone can apply a patch; the
+question is what happens when the patch is wrong.
+
+Every line on screen is the real output of a command that really ran, with its real exit code.
+[Full quality MP4](assets/demo.mp4).
+
 Fan a large body of checks out across parallel agents. Each agent clones only the parts it needs,
 tests them in its own private workdir, writes its **own** log, and destroys its clone. When every
 agent is done, a **single** merge step folds all the logs into one `successes.jsonl` /
