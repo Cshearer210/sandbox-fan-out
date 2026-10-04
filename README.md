@@ -19,6 +19,20 @@ question is what happens when the patch is wrong.
 Every line on screen is the real output of a command that really ran, with its real exit code.
 [Full quality MP4](assets/demo.mp4).
 
+**183 tests pass** — measured 2026-10-04, and reproducible by anyone in under a second:
+
+```bash
+python3 -m pytest -q        # 183 passed
+corral doctor               # 6 checks, and it exits non-zero if any of them is untrue
+```
+
+Two of those tests matter more than the rest and were written by killing the behaviour on purpose:
+flip **"dry run by default"** or **"only repair what two methods agree on"** and the suite fails —
+which is the only way to know a safety default is load-bearing rather than decorative.
+
+That count is checked against the real suite rather than trusted: if the number here and the number
+the suite reports ever disagree, the pre-ship gate refuses the push.
+
 Fan a large body of checks out across parallel agents. Each agent clones only the parts it needs,
 tests them in its own private workdir, writes its **own** log, and destroys its clone. When every
 agent is done, a **single** merge step folds all the logs into one `successes.jsonl` /
