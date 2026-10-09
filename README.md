@@ -20,10 +20,10 @@ question is what happens when the patch is wrong.
 Every line on screen is the real output of a command that really ran, with its real exit code.
 [Full quality MP4](assets/demo.mp4).
 
-**183 tests pass** — measured 2026-10-04, and reproducible by anyone in under a second:
+**191 tests pass** — measured 2026-10-09, and reproducible by anyone in under a second:
 
 ```bash
-python3 -m pytest -q        # 183 passed
+python3 -m pytest -q        # 191 passed
 corral doctor               # 6 checks, and it exits non-zero if any of them is untrue
 ```
 

@@ -28,8 +28,20 @@ class SummarizeTest(unittest.TestCase):
         shutil.rmtree(self.d, ignore_errors=True)
 
     def test_empty_dir_is_all_zeros(self):
+        # ⛔ CHANGED 2026-10-09, AND THIS TEST IS WHY THE BUG FELT COVERED. It asserted the exact
+        # tally dict, which pinned the old shape -- and the old shape was the defect: an empty
+        # directory produced all-zeros and `main` turned that into exit 0, a clean bill of health
+        # for a scan that read nothing. The counts here are still right; what is added is `found`
+        # and `unreadable`, which is how a caller tells "a run that scored nothing" apart from
+        # "not a fan-out directory at all" and from "a corrupt file". The exit-code half is
+        # asserted in test_scoreboard.py.
         t = summarize(self.d)
-        self.assertEqual(t, {"successes": 0, "failures": 0, "by_verdict": {}, "units": 0})
+        self.assertEqual(t["units"], 0)
+        self.assertEqual(t["successes"], 0)
+        self.assertEqual(t["failures"], 0)
+        self.assertEqual(t["by_verdict"], {})
+        self.assertEqual(t["found"], [])            # nothing was there to read
+        self.assertEqual(t["unreadable"], [])       # and nothing was unreadable either
 
     def test_counts_successes_and_failures_from_the_two_files(self):
         _write(self.d, "successes.jsonl", [{"unit": "a", "note": "OK"}, {"unit": "b", "note": "OK"}])
@@ -73,10 +85,17 @@ class ReportTest(unittest.TestCase):
         shutil.rmtree(self.d, ignore_errors=True)
 
     def test_empty_report_says_no_results(self):
+        # ⛔ CHANGED 2026-10-09. The old wording was "no merged results found (run a fan-out
+        # first)" -- a suggestion, printed on the way to exit 0. An empty directory is not a
+        # fan-out output directory at all, so the report now says COULD NOT TELL and names what
+        # it wanted, and `main` exits 2. The sentence a client reads is the whole fix here: the
+        # old one left them believing the tool had looked.
         buf = io.StringIO()
         t = report(self.d, out=buf)
         self.assertEqual(t["units"], 0)
-        self.assertIn("no merged results", buf.getvalue())
+        self.assertIn("COULD NOT TELL", buf.getvalue())
+        self.assertIn("not a fan-out output directory", buf.getvalue())
+        self.assertTrue(t.get("could_not_tell"))
 
     def test_populated_report_shows_totals_and_verdicts(self):
         _write(self.d, "successes.jsonl", [{"unit": "a", "note": "CAUGHT: x"},

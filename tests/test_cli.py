@@ -49,12 +49,18 @@ class MainReturnCodeTest(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("usage", out.lower())
 
-    def test_scoreboard_with_dir_returns_zero(self):
+    def test_scoreboard_with_an_empty_dir_returns_two(self):
+        # ⛔ RENAMED AND CORRECTED 2026-10-09. It was `..._with_dir_returns_zero` and asserted 0
+        # on an EMPTY tempdir -- which is the defect, not the contract: a clean bill of health
+        # for a scan that read nothing. An empty directory is not a fan-out output directory, so
+        # the CLI now exits 2 and says what it wanted. The NAME mattered as much as the
+        # assertion: "with dir returns zero" reads like a healthy path and was really the bug.
         d = tempfile.mkdtemp()
         try:
             code, out = _capture(["scoreboard", d])
-            self.assertEqual(code, 0)
+            self.assertEqual(code, 2)
             self.assertIn("corral scoreboard", out)
+            self.assertIn("COULD NOT TELL", out)
         finally:
             shutil.rmtree(d, ignore_errors=True)
 
